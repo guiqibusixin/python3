@@ -1,0 +1,69 @@
+from numpy import * 
+from numpy import *
+import operator
+from os import listdir
+
+maxLength = 1024
+
+def trainNB0(trainMatrix, trainCategory):
+    rows,col = shape(trainMatrix)
+    labelNums = len(set(trainCategory))
+    nums = ones((labelNums,col))
+    total = ones(labelNums)
+    
+    for i in range(rows):
+        nums[trainCategory[i]] += trainMatrix[i]
+        total[trainCategory[i]] += sum(trainMatrix[i])
+    
+    result = log(nums / tile(total,(col,1)).T)
+        
+    return result
+
+
+def img2vector(filename):
+    returnVect = zeros((1,1024))
+    fr = open(filename)
+    for i in range(32):
+        lineStr = fr.readline()
+        for j in range(32):
+            returnVect[0,32*i+j] = int(lineStr[j])
+    return returnVect
+
+def classify(resultClassify,result):
+    p = (resultClassify * result).sum(axis=1)
+    max = p[0]
+    index = 0
+    for i in range(1,len(result)):
+        if(p[i] > max):
+            max = p[i]
+            index = i
+            
+    return index
+
+
+def test():
+    hwLabels = []
+    trainingFileList = listdir('trainingDigits')           #load the training set
+    m = len(trainingFileList)
+    trainingMat = zeros((m - 1,maxLength))
+    for i in range(1, m):
+        fileNameStr = trainingFileList[i]
+        fileStr = fileNameStr.split('.')[0]     #take off .txt
+        classNumStr = int(fileStr.split('_')[0])
+        hwLabels.append(classNumStr)
+        trainingMat[i - 1,:] = img2vector('trainingDigits/%s' % fileNameStr)
+    vect = trainNB0(trainingMat, hwLabels)
+    testFileList = listdir('testDigits')        #iterate through the test set
+    errorCount = 0.0
+    mTest = len(testFileList)
+    for i in range(mTest):
+        fileNameStr = testFileList[i]
+        fileStr = fileNameStr.split('.')[0]     #take off .txt
+        classNumStr = int(fileStr.split('_')[0])
+        vectorUnderTest = img2vector('testDigits/%s' % fileNameStr)
+        classifierResult = classify(vectorUnderTest, vect)
+        if (classifierResult != classNumStr): 
+            errorCount += 1.0
+            print("the classifier came back with: %d, the real answer is: %d" % (classifierResult, classNumStr))
+    print("\nthe total number of errors is: %d" % errorCount)
+    print("\nthe total error rate is: %f" % (errorCount/float(mTest)))
